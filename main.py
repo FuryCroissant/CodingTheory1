@@ -1,16 +1,189 @@
-# This is a sample Python script.
+import numpy
+from itertools import product
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+class LinearCode:
 
+    def __init__(self, S):
+        # ЗАДАНИЕ 1.1
+        def REF(a):
+            a = numpy.array(a)
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+            m = len(a[:, 0])  # размеры матрицы
+            n = len(a[0, :])
 
+            for g in range(m):
 
-# Press the green button in the gutter to run the script.
+                x = g
+                while x < n:
+                    max = a[g][x]  # ищем ведущий эл-т в столбце. Вначале ведущий эл-т = эл-ту в данном столбце,
+                    # который принадлежит главной диагонали матрицы
+                    my = g
+                    t1 = g
+                    while t1 < m:
+                        if a[t1][x] > max:  # если нашли эл-т больше max, то считаем за max его
+                            max = a[t1][x]
+                            my = t1
+                        t1 += 1
+                    if max == 0:  # Отличие от метода Гаусса сли max = 0, то ведущий эл-т не найден,
+                        # действий не требуется,
+                        x += 1  # переходим вправо
+                    else:
+                        break
+
+                if my != g:  # если маx эл-т стоит ниже первоначально выбранной строки, то строки меняются местами
+                    a[g][:], a[my][:] = a[my][:], a[g][:]
+
+                j = g + 1
+
+                while j < m:  # бнуляем всё ниже ведущих эл-ов
+                    b = -a[j][x]
+                    z = x
+                    while z < n:
+                        a[j][z] = (a[j][z] + a[g][z] * b) % 2  # складываем нужные строки по модулю 2
+                        z += 1
+                    j += 1
+            return a[~numpy.all(a == 0, axis=1)]  # выводим без полностью 0-х строк
+
+        LIST = []  # тут будем хранить номера ведущих столбцов
+        # Задание 1.2
+        def PREF(a):
+            a = numpy.array(a)
+            m = len(a[:, 0])  # размеры матрицы
+            n = len(a[0, :])
+
+            for g in range(m):
+
+                x = g
+                while x < n:  # ищем ведущий эл-т в столбце
+                    max = a[g][x]
+                    t1 = g
+                    while t1 < m:
+                        if a[t1][x] > max:
+                            max = a[t1][x]
+                        t1 += 1
+                    if max == 0:  # сли max = 0, то в столбце нет 1, действий не требуется, переходим вправо
+                        x += 1
+                    else:
+                        LIST.append(x)  # запоминаем номер ведущего столбца
+                        break
+                j = 0
+                r = 0
+                fl = 0
+                while r < g:  # проверяем эл-ты в столбце выше ведущего эл-та
+                    if a[r][x] != 0:  # если выше ведущего эл-та есть хотя бы одна 1, помечаем столбец
+                        fl = 1
+                    r += 1
+                if fl == 1:  # сли в столбце есть 1 выше ведущего эл-та, обнуляем столбец выше ведущего эл-та
+                    while j < g:
+                        b = -1
+                        z = x
+                        if a[j][x] != 0:  # если какой-то эл-т выше ведущего ~уже~ равен 0, то строку с ним пропускаем
+                            while z < n:
+                                a[j][z] = (a[j][z] + a[g][z] * b) % 2
+                                z += 1
+                        j += 1
+            return a[~numpy.all(a == 0, axis=1)]  # выводим без полностью 0-х строк
+
+        def Distance(a):  # расчет кодового расстояния, задание 1.5
+            m = len(a[:, 0])
+            d = 10
+            i = 0
+            while i < m:
+                for j in range(i + 1, m):  # складываем по очереди каждые две комбинации
+                    s = (a[i, :] + a[j, :]) % 2
+                    sum = 0
+                    for k in range(len(s)):  # затем считаем в полученной сумме кол-во 1
+                        if s[k] == 1:
+                            sum += 1
+                    if sum < d:  # самое маленько кол-во 1 = d
+                        d = sum
+                    j += 1
+                i += 1
+            return d
+
+        def Words(a):  # задание 1.4.1
+            m = len(a[:, 0])
+            w = a.copy()  # создаем копию входной матрицы
+            w = numpy.vstack([w, numpy.zeros(w.shape[1], dtype=int)])  # обавляем в конец нулевую строку
+            for i in range(m - 1):  # по очереди складываем все строчки матрицы
+                for j in range(i + 1, m):
+                    s = (a[i] + a[j]) % 2
+                    flag = True
+                    for k in range(0, w.shape[0]):
+                        if numpy.array_equal(w[k], s):  # если такая строка уже есть в w, меняем flag
+                            flag = False
+                            break
+                    if flag:  # flag = true, такой строки ещё не было, добавляем её в w
+                        w = numpy.vstack([w, s])
+            return w
+
+        print("ЗАДАНИЕ 1.3.1\nЗададим входную матрицу S")
+        print("Входная матрица S:\n", s)
+        print("\nСформируем порождающую матрицу G в ступенчатом виде на основе входной:")
+        G = REF(s)
+        print("G:\n", G)
+
+        k, n = G.shape
+        print("\nЗАДАНИЕ 1.3.2 \n Матрица G: Количество строк = ", k, ", количество столбцов = ", n)
+
+        print("\nЗАДАНИЕ 1.3.3\nШаг 1. Сформируем матрицу GG в приведённом ступенчатом виде на основе порождающей")
+        GG = PREF(G)
+        print("GG:\n", GG)
+
+        print("Шаг 2. Зафиксируем ведущие столбцы матрицы GG", LIST)
+
+        X = numpy.delete(GG, LIST, 1)
+        print("Шаг 3. Сформируем сокращённую матрицу Х\n", X)
+        xm, xn = X.shape
+        I = numpy.eye(xn, dtype=int)
+        print("Единичная матрица I:\n", I)
+
+        for i in range(xm):
+            I = numpy.insert(I, LIST[i], X[i, :], axis=0)
+        print("Шаг 4. Сформируем матрицу H:\n", I)
+
+        print("\nЗАДАНИЕ 1.4.1")
+        M = Words(s)
+        m = len(M)
+        print("Сложим все слова из порождающего множества,оставим неповторяющиеся:\n", M, m)
+
+        n = [0, 1]
+        U = list(product(n, repeat=k))  # все двоичные слова длины k
+        print("\nЗАДАНИЕ 1.4.2 Возьмём все двоичные слова длины k\n", U)
+        V = []
+        VH = []
+        print("\nУмножаем каждое слово на G1. получая V):\nУмножение кодовых слов на матрицу H даёт нулевые вектора:\n")
+        for i in range(len(U)):
+            v = numpy.dot(U[i], G) % 2
+            V.append(v)
+            print("V[", i, "]:", v)
+            vh = numpy.dot(v, I) % 2
+            VH.append(vh)
+            print("vH: ", vh)
+
+        D = Distance(G)
+        print("\nЗадание 1.5\nКодовое расстояние =", D, "\nКратность ошибки = ", D - 1)
+
+        word = V[12]  # выбираем произвольное слово
+        e1 = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]  # ошибка кратности t
+        word2 = (word + e1) % 2  # вносим ошибку
+        print("\nЗадание 1.5.1 Выберем некоторое кодовое слово:", word, "\nВнесём ошибку кратности ", D - 1, "e1:", e1,
+              "\nПолучим: ", word2)
+        WordError = numpy.dot(word2, I) % 2  # пытаемся обнаружить ошибку
+        print("умножим на матрицу H: ", WordError, "Ошибка обнаружена!")
+
+        e2 = [0, 0, 1, 1, 0, 0, 0, 0, 0, 0]  # ошибка кратности t+1
+        #ошибку пришлось подбирать: она не будет обнаружена,
+        #если она совпадет с каким-то кодовым словом из V
+        word3 = (word + e2) % 2  # вносим ошибку
+        WordNoError = numpy.dot(word3, I) % 2  # пытаемся обнаружить ошибку
+        print("\nЗадание 1.5.2 Внесём ошибку кратности", D, "e2:", e2, "\nПолучим: ", word3, "\nумножим на матрицу H: ",
+              WordNoError)
+
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    s = numpy.array([[1, 1, 0, 1, 0, 0, 0, 1, 0, 1],  # Входная матрица
+                     [0, 0, 1, 0, 1, 1, 0, 1, 0, 1],
+                     [0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+                     [1, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+                     [1, 1, 0, 1, 0, 0, 1, 1, 0, 1]])
+    linearcode = LinearCode(s)
